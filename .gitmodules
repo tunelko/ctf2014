@@ -1,0 +1,15 @@
+[submodule "provision/puppet/modules/concat"]
+	path = provision/puppet/modules/concat
+	url = https://github.com/puppetlabs/puppetlabs-concat.git
+[submodule "provision/puppet/modules/stdlib"]
+	path = provision/puppet/modules/stdlib
+	url = https://github.com/puppetlabs/puppetlabs-stdlib.git
+[submodule "provision/puppet/modules/vyatta"]
+	path = provision/puppet/modules/vyatta
+	url = https://github.com/ahaitoute/puppet-vyatta.git
+[submodule "provision/puppet/modules/network"]
+	path = provision/puppet/modules/network
+	url = https://github.com/adrienthebo/puppet-network.git
+[submodule "provision/puppet/modules/boolean"]
+	path = provision/puppet/modules/boolean
+	url = https://github.com/adrienthebo/puppet-boolean.git
