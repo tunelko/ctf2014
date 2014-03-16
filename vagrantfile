@@ -16,8 +16,7 @@ VAGRANTFILE_API_VERSION = "2"
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.define "attacker" do |attacker|
-    attacker.vm.box = "kali64-1.0.6-mini"
-    attacker.vm.box_url = "http://goo.gl/14cSMz"
+    attacker.vm.box = 'svigneux/kali-linux-1.0.6-amd64-mini'
     attacker.vm.guest = :debian
     attacker.vm.hostname = 'attacker'
     attacker.vm.network :public_network, ip: "10.0.0.10", nic_type: 'virtio', bridge: 'v_attacker'
@@ -57,8 +56,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   (1..$team_count).each do |t|
     config.vm.define "team#{t}" do |team|
-      team.vm.box = "kali64-1.0.6-mini"
-      team.vm.box_url = "http://goo.gl/14cSMz"
+      team.vm.box = 'svigneux/kali-linux-1.0.6-amd64-mini'
       team.vm.guest = :debian
       team.vm.hostname = "team#{t}"
       team.vm.network :public_network, nic_type: 'virtio', bridge: 'v_dirty_t1',  ip: "169.254.1.1"
@@ -81,8 +79,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
 
     config.vm.define "vendor#{t}" do |vendor|
-      vendor.vm.box = "kali64-1.0.6-mini"
-      vendor.vm.box_url = "http://goo.gl/14cSMz"
+      vendor.vm.box = 'svigneux/kali-linux-1.0.6-amd64-mini'
       vendor.vm.guest = :debian
       vendor.vm.hostname = "vendor#{t}"
 
@@ -129,8 +126,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define "target1" do |target1|
-    target1.vm.box = "kali64-1.0.6-mini"
-    target1.vm.box_url = "http://goo.gl/14cSMz"
+    target1.vm.box = 'svigneux/kali-linux-1.0.6-amd64-mini'
     target1.vm.guest = :debian
     target1.vm.hostname = 'target1'
     target1.vm.network :public_network, nic_type: 'virtio', bridge: 'v_target', ip: "10.0.1.11"
