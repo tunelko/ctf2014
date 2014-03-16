@@ -32,8 +32,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # VyOS Router Between attacker network and team networks
   # sudo vagrant plugin install vagrant-vyatta
   config.vm.define "rAttack1" do |rAttack|
-    rAttack.vm.box = "vyos-1.0.2-amd64"
-    rAttack.vm.box_url = "TODO"
+    rAttack.vm.box = "svigneux/vyos-1.0.2-amd64"
     rAttack.vm.guest = :debian
     rAttack.vm.hostname = 'rAttack1'
     
@@ -108,7 +107,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # VyOS Router Between team networks and target networks
   config.vm.define "rTarget" do |rTarget|
-    rTarget.vm.box = "vyos-1.0.2-amd64"
+    rTarget.vm.box = "svigneux/vyos-1.0.2-amd64"
     rTarget.vm.box_url = "TODO"
     rTarget.vm.guest = :debian
     rTarget.vm.hostname = 'rTarget'
