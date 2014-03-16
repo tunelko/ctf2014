@@ -1,0 +1,144 @@
+# vim: set ai ft=ruby ts=2 sw=2 et!:
+
+$team_count = 1
+
+def provision(config, manifest)
+
+  config.vm.provision :puppet do |puppet|
+    puppet.manifest_file  = manifest
+    puppet.module_path    = "provision/puppet/modules"
+    puppet.manifests_path = "provision/puppet/manifests"
+    puppet.options        = "--verbose"
+  end
+end
+
+VAGRANTFILE_API_VERSION = "2"
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.define "attacker" do |attacker|
+    attacker.vm.box = "kali64-1.0.6-mini"
+    attacker.vm.box_url = "http://goo.gl/14cSMz"
+    attacker.vm.guest = :debian
+    attacker.vm.hostname = 'attacker'
+    attacker.vm.network :public_network, ip: "10.0.0.10", nic_type: 'virtio', bridge: 'v_attacker'
+    attacker.vm.provider "virtualbox" do |vb|
+      vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+      vb.customize ["modifyvm", :id, "--nicpromisc2", 'allow-all']
+    end
+
+#    provision(attacker,'rattack.pp')
+  end
+
+  # VyOS Router Between attacker network and team networks
+  # sudo vagrant plugin install vagrant-vyatta
+  config.vm.define "rAttack1" do |rAttack|
+    rAttack.vm.box = "vyos-1.0.2-amd64"
+    rAttack.vm.box_url = "TODO"
+    rAttack.vm.guest = :debian
+    rAttack.vm.hostname = 'rAttack1'
+    
+    # Manually configure virtualization layer 
+    rAttack.vm.provider "virtualbox" do |vb|
+      vb.customize ['modifyvm', :id, '--chipset', 'ich9']    # support 36 interfaces
+      vb.customize ['modifyvm', :id, '--nictype1', 'virtio'] # set virtio for eth0 default interface
+
+      vb.customize ['modifyvm', :id, '--nictype2', 'virtio'] # set virtio for eth1 - v_attacker
+      vb.customize ["modifyvm", :id, "--nic2", 'bridged', "--bridgeadapter2", 'v_attacker']
+
+      (1..$team_count).each do |t|
+        i=t+2
+        vb.customize ["modifyvm", :id, "--nicpromisc#{i}", 'allow-all']
+        vb.customize ["modifyvm", :id, "--nic#{i}", 'bridged', "--bridgeadapter#{i}", "v_dirty_t#{t}"]
+      end
+    end
+
+    provision(rAttack,'rattack.pp')
+
+  end
+
+  (1..$team_count).each do |t|
+    config.vm.define "team#{t}" do |team|
+      team.vm.box = "kali64-1.0.6-mini"
+      team.vm.box_url = "http://goo.gl/14cSMz"
+      team.vm.guest = :debian
+      team.vm.hostname = "team#{t}"
+      team.vm.network :public_network, nic_type: 'virtio', bridge: 'v_dirty_t1',  ip: "169.254.1.1"
+      team.vm.network :public_network, nic_type: 'virtio', bridge: 'v_soaked_t1', ip: "169.254.1.2"
+
+      team.vm.provider "virtualbox" do |vb|
+        vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+
+        i=2 # bridge interface in:  eth1
+        o=3 # bridge interface out: eth2
+
+        vb.customize ["modifyvm", :id, "--nicpromisc#{i}", 'allow-all']
+        vb.customize ["modifyvm", :id, "--nicpromisc#{o}", 'allow-all']
+        vb.customize ["modifyvm", :id, "--nic#{i}", 'bridged', "--bridgeadapter#{i}", "v_dirty_t#{t}"]
+        vb.customize ["modifyvm", :id, "--nic#{o}", 'bridged', "--bridgeadapter#{o}", "v_soaked_t#{t}"]
+
+      end
+      provision(team,'team.pp')
+
+    end
+
+    config.vm.define "vendor#{t}" do |vendor|
+      vendor.vm.box = "kali64-1.0.6-mini"
+      vendor.vm.box_url = "http://goo.gl/14cSMz"
+      vendor.vm.guest = :debian
+      vendor.vm.hostname = "vendor#{t}"
+
+      vendor.vm.provider "virtualbox" do |vb|
+        vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+
+        i=2 # eth1
+        o=3 # eth2
+
+        vb.customize ["modifyvm", :id, "--nicpromisc#{i}", 'allow-all']
+        vb.customize ["modifyvm", :id, "--nicpromisc#{o}", 'allow-all']
+        vb.customize ["modifyvm", :id, "--nic#{i}", 'bridged', "--bridgeadapter#{i}", "v_soaked_t#{t}"]
+        vb.customize ["modifyvm", :id, "--nic#{o}", 'bridged', "--bridgeadapter#{o}", "v_clean_t#{t}"]
+
+      end
+
+      provision(vendor,'vendor.pp')
+
+    end
+
+  end
+
+  # VyOS Router Between team networks and target networks
+  config.vm.define "rTarget" do |rTarget|
+    rTarget.vm.box = "vyos-1.0.2-amd64"
+    rTarget.vm.box_url = "TODO"
+    rTarget.vm.guest = :debian
+    rTarget.vm.hostname = 'rTarget'
+    
+    rTarget.vm.provider "virtualbox" do |vb|
+      vb.customize ['modifyvm', :id, '--chipset', 'ich9']    # support 36 interfaces
+      vb.customize ['modifyvm', :id, '--nictype1', 'virtio'] # set virtio for eth0 default interface
+      vb.customize ['modifyvm', :id, '--nictype2', 'virtio'] # set virtio for eth1 - v_target
+      # vyatta - configure 10.0.1.1
+      vb.customize ["modifyvm", :id, "--nic2", 'bridged', "--bridgeadapter2", 'v_target']
+
+      (1..$team_count).each do |t|
+        i=t+2
+        vb.customize ["modifyvm", :id, "--nicpromisc#{i}", 'allow-all']
+        vb.customize ["modifyvm", :id, "--nic#{i}", 'bridged', "--bridgeadapter#{i}", "v_clean_t#{t}"]
+      end
+
+    end
+  end
+
+  config.vm.define "target1" do |target1|
+    target1.vm.box = "kali64-1.0.6-mini"
+    target1.vm.box_url = "http://goo.gl/14cSMz"
+    target1.vm.guest = :debian
+    target1.vm.hostname = 'target1'
+    target1.vm.network :public_network, nic_type: 'virtio', bridge: 'v_target', ip: "10.0.1.11"
+    target1.vm.provider "virtualbox" do |vb|
+      vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
+      vb.customize ["modifyvm", :id, "--nicpromisc2", 'allow-all']
+    end
+  end
+
+end
