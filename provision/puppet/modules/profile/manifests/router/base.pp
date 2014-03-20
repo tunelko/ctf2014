@@ -1,68 +1,24 @@
-node 'rAttack1' {
+class profile::router::base {
   ###
   # configure vyatta router
   ###
   class { 'vyatta':
+    script_dir    => '/home/vagrant',
     configuration => '/home/vyos/configuration',
     host_name     => 'vyos',
     time_zone     => 'UTC',
   }
 
+  # vagrant management interface
   vyatta::interfaces::loopback { 'lo': address => '127.0.0.1/32' }
 
-  vyatta::interfaces::ethernet { 'eth0':
-    address => 'dhcp',
-    hw_id   => $macaddress_eth0
-  }
-
-  # v_attacker
-  vyatta::interfaces::ethernet { 'eth1':
-    address => ['10.0.0.1/24'],
-    hw_id   => $macaddress_eth1
-  }
-
-  # setup team 1 to 3
-  # v_dirty_t1
-  vyatta::interfaces::ethernet { 'eth2':
-    address => ['10.1.1.1/24'],
-    hw_id   => $macaddress_eth2
-  }
-
-  #  # v_dirty_t2
-  #  vyatta::interfaces::ethernet { 'eth3':
-  #    address => ['10.2.1.1/24'],
-  #    hw_id => $macaddress_eth3
-  #  }
-
-  #  # v_dirty_t3
-  #  vyatta::interfaces::ethernet { 'eth4':
-  #    address => ['10.3.1.1/24'],
-  #    hw_id => $macaddress_eth4
-  #  }
-  #
-  #  # v_dirty_t4
-  #  vyatta::interfaces::ethernet { 'eth4':
-  #    address => ['10.4.1.1/24'],
-  #    hw_id => $macaddress_eth5
-  #  }
-
-  #  # v_dirty_t5
-  #  vyatta::interfaces::ethernet { 'eth4':
-  #    address => ['10.5.1.1/24'],
-  #    hw_id => $macaddress_eth6
-  #  }
-
-  #  # v_dirty_t6
-  #  vyatta::interfaces::ethernet { 'eth4':
-  #    address => ['10.6.1.1/24'],
-  #    hw_id => $macaddress_eth7
-  #  }
+  vyatta::interfaces::ethernet { 'eth0': address => 'dhcp', }
 
   # ################# system
   vyatta::system::login { 'vyatta':
     encrypted_password => '$6$GUyv4c3u7RZwjhRx$44.RQbxRI.nMEeV.ZJx61K7xMYQpAmOR8VjdWd3Wkz7TuG44eeygBoG2u9B3Jv8Cbfr0i.JTTwnrC5MDUkclI/',
     # Password: vyatta
-    level     => 'admin',
+    level              => 'admin',
   }
 
   vyatta::system::login { 'vagrant':
@@ -76,12 +32,11 @@ node 'rAttack1' {
 
   vyatta::service::ssh { 'ssh': port => 22 }
 
-  vyatta::system::ntp { '0.vyatta.pool.ntp.org': }
+  vyatta::system::ntp { 'time.nrc.ca': }
 
-  vyatta::system::ntp { '1.vyatta.pool.ntp.org': }
+  vyatta::system::ntp { 'time.chu.nrc.ca': }
 
-  vyatta::system::ntp { '2.vyatta.pool.ntp.org': }
-
+  # repos
   vyatta::system::package { 'community':
     components   => 'main',
     distribution => 'hydrogen',
@@ -108,4 +63,7 @@ node 'rAttack1' {
     password     => ''
   }
 
+  vyatta::system::syslog::global { 'all': level => 'notice' }
+
+  vyatta::system::syslog::global { 'protocols': level => 'debug' }
 }
