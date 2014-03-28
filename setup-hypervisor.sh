@@ -30,7 +30,7 @@ function delete_vlan()
   ip tuntap del ${vlan} mode tap
 }
 
-team_count=3
+team_count=1
 if [ "$1" == 'create' ]; then 
   #1 create main bridge
   ovs-vsctl add-br ovsbr0

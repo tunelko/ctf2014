@@ -1,5 +1,6 @@
 define bridge::enslave ($bridge_device, $interface) {
   require bridge
+
   exec { "brctl addbr ${bridge_device} for ${name}":
     command => "brctl addbr ${bridge_device}",
     unless  => "cat /proc/net/dev | grep ${bridge_device}",
@@ -17,6 +18,13 @@ define bridge::enslave ($bridge_device, $interface) {
     command => "ifconfig ${bridge_device} up",
     onlyif  => "brctl show ${bridge_device} | grep ${interface}",
     unless  => "ifconfig | grep ${bridge_device}",
+    path    => ['/bin', '/sbin', '/usr/bin'],
+    require => Exec["brctl addbr ${bridge_device} for ${name}"]
+  }
+
+  exec { "ifconfig ${interface} up":
+    unless  => "ifconfig | grep ${interface}",
+    onlyif  => "ifconfig -a | grep ${interface}",
     path    => ['/bin', '/sbin', '/usr/bin'],
     require => Exec["brctl addbr ${bridge_device} for ${name}"]
   }

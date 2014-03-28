@@ -2,8 +2,8 @@
 
 $team_count = 1
 
-def provision(config, manifest)
-
+def provision(config, manifest = 'ctf2014.pp' )
+  
   config.vm.provision :puppet do |puppet|
     puppet.manifest_file  = manifest
     puppet.module_path    = "provision/puppet/modules"
@@ -19,21 +19,20 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     attacker.vm.box = 'svigneux/kali-linux-1.0.6-amd64-mini'
     attacker.vm.guest = :debian
     attacker.vm.hostname = 'attacker'
-    attacker.vm.network :public_network, ip: "10.0.0.10", nic_type: 'virtio', bridge: 'v_attacker'
+    attacker.vm.network :public_network, ip: "10.0.0.10", nic_type: 'virtio', bridge: 'v_attacker', use_dhcp_assigned_default_route: false
     attacker.vm.provider "virtualbox" do |vb|
       vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
       vb.customize ["modifyvm", :id, "--nicpromisc2", 'allow-all']
     end
 
-#    provision(attacker,'rattack.pp')
+    provision(attacker)
   end
 
   # VyOS Router Between attacker network and team networks
-  # sudo vagrant plugin install vagrant-vyatta
-  config.vm.define "rAttack1" do |rAttack|
+  config.vm.define "rAttack" do |rAttack|
     rAttack.vm.box = "svigneux/vyos-1.0.2-amd64"
     rAttack.vm.guest = :debian
-    rAttack.vm.hostname = 'rAttack1'
+    rAttack.vm.hostname = 'rAttack'
     
     # Manually configure virtualization layer 
     rAttack.vm.provider "virtualbox" do |vb|
@@ -46,11 +45,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       (1..$team_count).each do |t|
         i=t+2
         vb.customize ["modifyvm", :id, "--nicpromisc#{i}", 'allow-all']
+        vb.customize ['modifyvm', :id, "--nictype#{i}", 'virtio'] # set virtio for all interfaces
         vb.customize ["modifyvm", :id, "--nic#{i}", 'bridged', "--bridgeadapter#{i}", "v_dirty_t#{t}"]
       end
     end
 
-    provision(rAttack,'rattack.pp')
+    provision(rAttack)
 
   end
 
@@ -59,8 +59,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       team.vm.box = 'svigneux/kali-linux-1.0.6-amd64-mini'
       team.vm.guest = :debian
       team.vm.hostname = "team#{t}"
-      team.vm.network :public_network, nic_type: 'virtio', bridge: 'v_dirty_t1',  ip: "169.254.1.1"
-      team.vm.network :public_network, nic_type: 'virtio', bridge: 'v_soaked_t1', ip: "169.254.1.2"
 
       team.vm.provider "virtualbox" do |vb|
         vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
@@ -68,13 +66,16 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         i=2 # bridge interface in:  eth1
         o=3 # bridge interface out: eth2
 
+        vb.customize ['modifyvm', :id, "--nictype#{i}", 'virtio']
+        vb.customize ['modifyvm', :id, "--nictype#{o}", 'virtio']
         vb.customize ["modifyvm", :id, "--nicpromisc#{i}", 'allow-all']
         vb.customize ["modifyvm", :id, "--nicpromisc#{o}", 'allow-all']
         vb.customize ["modifyvm", :id, "--nic#{i}", 'bridged', "--bridgeadapter#{i}", "v_dirty_t#{t}"]
         vb.customize ["modifyvm", :id, "--nic#{o}", 'bridged', "--bridgeadapter#{o}", "v_soaked_t#{t}"]
 
       end
-      provision(team,'team.pp')
+
+      provision(team)
 
     end
 
@@ -86,9 +87,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       vendor.vm.provider "virtualbox" do |vb|
         vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
 
-        i=2 # eth1
-        o=3 # eth2
+        i=2 # bridge interface in:  eth1
+        o=3 # bridge interface out: eth2
 
+        vb.customize ['modifyvm', :id, "--nictype#{i}", 'virtio']
+        vb.customize ['modifyvm', :id, "--nictype#{o}", 'virtio']
         vb.customize ["modifyvm", :id, "--nicpromisc#{i}", 'allow-all']
         vb.customize ["modifyvm", :id, "--nicpromisc#{o}", 'allow-all']
         vb.customize ["modifyvm", :id, "--nic#{i}", 'bridged', "--bridgeadapter#{i}", "v_soaked_t#{t}"]
@@ -96,7 +99,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       end
 
-      provision(vendor,'vendor.pp')
+      provision(vendor)
 
     end
 
@@ -105,7 +108,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # VyOS Router Between team networks and target networks
   config.vm.define "rTarget" do |rTarget|
     rTarget.vm.box = "svigneux/vyos-1.0.2-amd64"
-    rTarget.vm.box_url = "TODO"
     rTarget.vm.guest = :debian
     rTarget.vm.hostname = 'rTarget'
     
@@ -119,8 +121,11 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       (1..$team_count).each do |t|
         i=t+2
         vb.customize ["modifyvm", :id, "--nicpromisc#{i}", 'allow-all']
+        vb.customize ['modifyvm', :id, "--nictype#{i}", 'virtio'] # set virtio for all interfaces
         vb.customize ["modifyvm", :id, "--nic#{i}", 'bridged', "--bridgeadapter#{i}", "v_clean_t#{t}"]
       end
+
+      provision(rTarget)
 
     end
   end
@@ -129,11 +134,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     target1.vm.box = 'svigneux/kali-linux-1.0.6-amd64-mini'
     target1.vm.guest = :debian
     target1.vm.hostname = 'target1'
-    target1.vm.network :public_network, nic_type: 'virtio', bridge: 'v_target', ip: "10.0.1.11"
+    target1.vm.network :public_network, nic_type: 'virtio', bridge: 'v_target', ip: "10.0.1.11", :use_dhcp_assigned_default_route => false
     target1.vm.provider "virtualbox" do |vb|
       vb.customize ['modifyvm', :id, '--nictype1', 'virtio']
       vb.customize ["modifyvm", :id, "--nicpromisc2", 'allow-all']
     end
-  end
 
+    provision(target1)
+
+  end
 end
