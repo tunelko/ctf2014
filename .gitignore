@@ -1,3 +1,4 @@
 .project
 .vagrant
-rootkey.csv
+aws/rootkey.csv
+aws/state
