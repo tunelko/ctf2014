@@ -9,7 +9,7 @@ ENV['VAGRANT_DEFAULT_PROVIDER'] = 'aws'
 
 VAGRANTFILE_API_VERSION = "2"
 
-DOMAIN = 'cloud.ctf101.at'
+DOMAIN = 'ctf101.at'
 
 AMI_VYOS = 'ami-609b7f08'
 AMI_UBUNTU_1404 = 'ami-37d8c05e'
