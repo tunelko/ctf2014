@@ -58,7 +58,13 @@ $BIN/ec2-associate-route-table -s $MGMTTIER_ID $RT_ID
 
 # Create VPC security group
 SECGROUP_ID=$($BIN/ec2-create-group -c $VPC_ID -d 'ctf101 Security group' ctf101-secgroup | awk '{print $2}')
-# $SECGROUP_ID
+# create allow all rules
+$BIN/ec2-authorize $SECGROUP_ID -P icmp -t -1:-1
+$BIN/ec2-authorize $SECGROUP_ID -P tcp -p -1
+$BIN/ec2-authorize $SECGROUP_ID -P udp -p -1
+$BIN/ec2-authorize --egress $SECGROUP_ID -P icmp -t -1:-1
+$BIN/ec2-authorize --egress $SECGROUP_ID -P tcp -p -1
+$BIN/ec2-authorize --egress $SECGROUP_ID -P udp -p -1
 
 # export variables to file
 echo "VPC_ID=${VPC_ID}" > $STATE
